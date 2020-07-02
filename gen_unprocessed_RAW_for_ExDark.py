@@ -10,23 +10,16 @@ import numpy as np
 import pickle
 import argparse
 
-# IMG_DIR='/tmp3/r07922076/coco/coco2017/val2017'
-# OUT_DIR='/tmp3/r07922076/unprocessed_COCO2017_RAW/val2017'
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('--ev', type=int, required=True)
-# args = parser.parse_args()
+IMG_DIR= f'/tmp3/r07922076/ExDark_data'
+OUT_DIR= f'/tmp3/r07922076/unprocessed_ExDark_data'
 
-IMG_DIR= f'/tmp3/r07922076/PASCALRAW_original/jpg'
-OUT_DIR= f'/tmp3/r07922076/unprocessed_PASCALRAW_RAW/jpg'
+obj_class_dir = next(os.walk( os.path.join(IMG_DIR)))[1]
+# obj_class_dir.remove('__MACOSX')
 
-# subdir = f'decay_{args.ev}'
-# IMG_DIR= f'/tmp3/r07922076/PASCALRAW_original/{subdir}/jpg'
-# OUT_DIR= f'/tmp3/r07922076/unprocessed_PASCALRAW_RAW/{subdir}'
-
-if not os.path.exists(OUT_DIR):
-    os.makedirs(OUT_DIR)
-
+for obj_class in obj_class_dir:
+    if not os.path.exists(os.path.join(OUT_DIR, obj_class)):
+        os.makedirs(os.path.join(OUT_DIR, obj_class))
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -39,7 +32,7 @@ un_raw, meta = unprocess(input_image)
 sess = tf.Session(config=config)
 
 with sess.as_default():
-    for imgpath in tqdm(sorted(glob.glob(os.path.join(IMG_DIR, '*.jpg')))):
+    for imgpath in tqdm(sorted(glob.glob(os.path.join(IMG_DIR, '*', '*')))):
         img = cv2.imread(imgpath)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
@@ -55,7 +48,10 @@ with sess.as_default():
         plane = plane.astype(np.float32) / 255.0
         un, metadata = sess.run([un_raw, meta], feed_dict={input_image: plane})
 
-        path_raw = os.path.join(OUT_DIR, os.path.basename(imgpath).replace('jpg','pkl'))
+
+        file_name, file_ext = os.path.splitext(imgpath)
+        obj_class = imgpath.split('/')[-2]
+        path_raw = os.path.join(OUT_DIR, obj_class, os.path.basename(imgpath).replace(file_ext,'.pkl'))
 
         with open(path_raw, 'wb') as pf:
             content = dict()
